@@ -1,3 +1,9 @@
+//EasyQuad v1.0
+//Hovern funktioniert mit dem EasyQuad und dieser Verion
+
+
+
+
 //Arduino/Teensy Flight Controller - dRehmFlight
 //Author: Nicholas Rehm
 //Project Start: 1/6/2020
@@ -24,16 +30,20 @@ Everyone that sends me pictures and videos of your flying creations! -Nick
 
 */
 
+//========================================================================================================================//
+//                                                     eigene Varibles                                                    //                                                                 
+//========================================================================================================================//
 
+float min_thro = 0.3;
 
 //========================================================================================================================//
 //                                                 USER-SPECIFIED DEFINES                                                 //                                                                 
 //========================================================================================================================//
 
 //Uncomment only one receiver type
-#define USE_PWM_RX
+//#define USE_PWM_RX
 //#define USE_PPM_RX
-//#define USE_SBUS_RX
+#define USE_SBUS_RX
 //#define USE_DSM_RX
 static const uint8_t num_DSM_channels = 6; //If using DSM RX, change this to match the number of transmitter channels you have
 
@@ -190,12 +200,12 @@ float Ki_pitch_angle = 0.3;   //Pitch I-gain - angle mode
 float Kd_pitch_angle = 0.05;  //Pitch D-gain - angle mode (has no effect on controlANGLE2)
 float B_loop_pitch = 0.9;     //Pitch damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
 
-float Kp_roll_rate = 0.15;    //Roll P-gain - rate mode
-float Ki_roll_rate = 0.2;     //Roll I-gain - rate mode
-float Kd_roll_rate = 0.0002;  //Roll D-gain - rate mode (be careful when increasing too high, motors will begin to overheat!)
-float Kp_pitch_rate = 0.15;   //Pitch P-gain - rate mode
-float Ki_pitch_rate = 0.2;    //Pitch I-gain - rate mode
-float Kd_pitch_rate = 0.0002; //Pitch D-gain - rate mode (be careful when increasing too high, motors will begin to overheat!)
+float Kp_roll_rate = 0.25;    //Roll P-gain - rate mode
+float Ki_roll_rate = 0.1;     //Roll I-gain - rate mode / 0.2
+float Kd_roll_rate = 0.00015;  //Roll D-gain - rate mode (be careful when increasing too high, motors will begin to overheat!) / 0.0002
+float Kp_pitch_rate = 0.25;   //Pitch P-gain - rate mode
+float Ki_pitch_rate = 0.1;    //Pitch I-gain - rate mode / 0.2
+float Kd_pitch_rate = 0.00015; //Pitch D-gain - rate mode (be careful when increasing too high, motors will begin to overheat!) / 0.0002
 
 float Kp_yaw = 0.3;           //Yaw P-gain
 float Ki_yaw = 0.05;          //Yaw I-gain
@@ -413,9 +423,9 @@ void loop() {
   getDesState(); //Convert raw commands to normalized values based on saturated control limits
   
   //PID Controller - SELECT ONE:
-  controlANGLE(); //Stabilize on angle setpoint
+  //controlANGLE(); //Stabilize on angle setpoint
   //controlANGLE2(); //Stabilize on angle setpoint using cascaded method. Rate controller must be tuned well first!
-  //controlRATE(); //Stabilize on rate setpoint
+  controlRATE(); //Stabilize on rate setpoint
 
   //Actuator mixing and scaling to PWM values
   controlMixer(); //Mixes PID outputs to scaled actuator commands -- custom mixing assignments done here
@@ -442,7 +452,15 @@ void loop() {
   loopRate(2000); //Do not exceed 2000Hz, all filter parameters tuned to 2000Hz by default
 }
 
+//========================================================================================================================//
+//                                                   eigene FUNCTIONS                                                     //                           
+//========================================================================================================================//
 
+float map_float(float x, float in_min, float in_max, float out_min, float out_max) {
+     float result;
+     result = (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+     return result;
+}
 
 //========================================================================================================================//
 //                                                      FUNCTIONS                                                         //                           
@@ -466,23 +484,39 @@ void controlMixer() {
    *roll_passthru, pitch_passthru, yaw_passthru - direct unstabilized command passthrough
    *channel_6_pwm - free auxillary channel, can be used to toggle things with an 'if' statement
    */
-   
-  //Quad mixing - EXAMPLE
-  m1_command_scaled = thro_des - pitch_PID + roll_PID + yaw_PID; //Front left
-  m2_command_scaled = thro_des - pitch_PID - roll_PID - yaw_PID; //Front right
-  m3_command_scaled = thro_des + pitch_PID - roll_PID + yaw_PID; //Back Right
-  m4_command_scaled = thro_des + pitch_PID + roll_PID - yaw_PID; //Back Right
-  m5_command_scaled = 0;
-  m6_command_scaled = 0;
+   //S1-S7: 0.5 is centered servo, 0.0 is zero throttle if connecting to ESC for conventional PWM, 1.0 is max throttle
 
-  //0.5 is centered servo, 0.0 is zero throttle if connecting to ESC for conventional PWM, 1.0 is max throttle
-  s1_command_scaled = 0;
-  s2_command_scaled = 0;
-  s3_command_scaled = 0;
-  s4_command_scaled = 0;
-  s5_command_scaled = 0;
-  s6_command_scaled = 0;
-  s7_command_scaled = 0;
+   //all motors are SX because the BEC´s cant handel the OneShot125 Protocol
+
+  //-------------------Flight Mode 1 / Quad-Mode-----------------------------
+
+    s3_command_scaled = thro_des - pitch_PID + roll_PID + yaw_PID; //Front left
+    s3_command_scaled = constrain(s3_command_scaled, 0, 1);
+    s3_command_scaled = map_float(s3_command_scaled, 0, 1, min_thro, 1);
+    
+    s4_command_scaled = thro_des - pitch_PID - roll_PID - yaw_PID; //Front right
+    s4_command_scaled = constrain(s4_command_scaled, 0, 1);
+    s4_command_scaled = map_float(s4_command_scaled, 0, 1, min_thro, 1);
+    
+    s5_command_scaled = thro_des + pitch_PID - roll_PID + yaw_PID; //Back right
+    s5_command_scaled = constrain(s5_command_scaled, 0, 1);
+    s5_command_scaled = map_float(s5_command_scaled, 0, 1, min_thro, 1);
+    
+    s6_command_scaled = thro_des + pitch_PID + roll_PID - yaw_PID; //Back left
+    s6_command_scaled = constrain(s6_command_scaled, 0, 1);
+    s6_command_scaled = map_float(s6_command_scaled, 0, 1, min_thro, 1);
+    
+    s7_command_scaled = 0; //Main Motor
+    s1_command_scaled = pitch_passthru + 0.5; //Elevator
+    s2_command_scaled = yaw_passthru + 0.5; //Rudder
+    
+  //not used Outputs ar Set to a difened Value of 0
+  m1_command_scaled = 0;
+  m2_command_scaled = 0;
+  m3_command_scaled = 0;
+  m4_command_scaled = 0;
+  m5_command_scaled = 0;  
+  m6_command_scaled = 0;
  
 }
 
@@ -1131,6 +1165,7 @@ void scaleCommands() {
   s5_command_PWM = s5_command_scaled*180;
   s6_command_PWM = s6_command_scaled*180;
   s7_command_PWM = s7_command_scaled*180;
+  
   //Constrain commands to servos within servo library bounds
   s1_command_PWM = constrain(s1_command_PWM, 0, 180);
   s2_command_PWM = constrain(s2_command_PWM, 0, 180);
@@ -1439,21 +1474,21 @@ void throttleCut() {
    * the motors to anything other than minimum value. Safety first. 
    */
   if (channel_5_pwm > 1500) {
-    m1_command_PWM = 120;
-    m2_command_PWM = 120;
-    m3_command_PWM = 120;
-    m4_command_PWM = 120;
-    m5_command_PWM = 120;
-    m6_command_PWM = 120;
+    //m1_command_PWM = 120;
+    //m2_command_PWM = 120;
+    //m3_command_PWM = 120;
+    //m4_command_PWM = 120;
+    //m5_command_PWM = 120;
+    //m6_command_PWM = 120;
     
     //Uncomment if using servo PWM variables to control motor ESCs
     //s1_command_PWM = 0;
     //s2_command_PWM = 0;
-    //s3_command_PWM = 0;
-    //s4_command_PWM = 0;
-    //s5_command_PWM = 0;
-    //s6_command_PWM = 0;
-    //s7_command_PWM = 0;
+    s3_command_PWM = 0;
+    s4_command_PWM = 0;
+    s5_command_PWM = 0;
+    s6_command_PWM = 0;
+    s7_command_PWM = 0;
   }
 }
 
