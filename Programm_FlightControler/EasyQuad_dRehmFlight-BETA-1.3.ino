@@ -1,8 +1,8 @@
-//EasyQuad v1.0
-//Hovern funktioniert mit dem EasyQuad und dieser Verion
+//EasyQuad v1.1
+//Hovern funktionierte in der v1.0 mit dem EasyQuad. Es wurden zwei weitere Flugmodi hinzugefügt (Flugmodi noch nicht getestet)
+//ThrottleCut wurde korrigiert -> es sollte jetzt nicht mehr bei "Arm" auf dem Sender vor dem anstecken des EasyQuad-Akkus zum loslaufen der Motoren kommen (noch nicht getestet)
 
-
-
+//=======================================================================================================================//
 
 //Arduino/Teensy Flight Controller - dRehmFlight
 //Author: Nicholas Rehm
@@ -35,6 +35,7 @@ Everyone that sends me pictures and videos of your flying creations! -Nick
 //========================================================================================================================//
 
 float min_thro = 0.3;
+bool power_up_stop = HIGH;
 
 //========================================================================================================================//
 //                                                 USER-SPECIFIED DEFINES                                                 //                                                                 
@@ -489,7 +490,7 @@ void controlMixer() {
    //all motors are SX because the BEC´s cant handel the OneShot125 Protocol
 
   //-------------------Flight Mode 1 / Quad-Mode-----------------------------
-
+  if(channel_6_pwm > 1700){
     s3_command_scaled = thro_des - pitch_PID + roll_PID + yaw_PID; //Front left
     s3_command_scaled = constrain(s3_command_scaled, 0, 1);
     s3_command_scaled = map_float(s3_command_scaled, 0, 1, min_thro, 1);
@@ -507,9 +508,44 @@ void controlMixer() {
     s6_command_scaled = map_float(s6_command_scaled, 0, 1, min_thro, 1);
     
     s7_command_scaled = 0; //Main Motor
+    s1_command_scaled = 0.5; //Elevator
+    s2_command_scaled = 0.5; //Rudder
+  }
+
+  //-------------------Flight Mode 2 / Transition-Mode-----------------------------
+  else if(channel_6_pwm < 1700 && channel_6_pwm > 1300){
+    s3_command_scaled = thro_des - pitch_PID + roll_PID + yaw_PID; //Front left
+    s3_command_scaled = constrain(s3_command_scaled, 0, 1);
+    s3_command_scaled = map_float(s3_command_scaled, 0, 1, min_thro, 1);
+    
+    s4_command_scaled = thro_des - pitch_PID - roll_PID - yaw_PID; //Front right
+    s4_command_scaled = constrain(s4_command_scaled, 0, 1);
+    s4_command_scaled = map_float(s4_command_scaled, 0, 1, min_thro, 1);
+    
+    s5_command_scaled = thro_des + pitch_PID - roll_PID + yaw_PID; //Back right
+    s5_command_scaled = constrain(s5_command_scaled, 0, 1);
+    s5_command_scaled = map_float(s5_command_scaled, 0, 1, min_thro, 1);
+    
+    s6_command_scaled = thro_des + pitch_PID + roll_PID - yaw_PID; //Back left
+    s6_command_scaled = constrain(s6_command_scaled, 0, 1);
+    s6_command_scaled = map_float(s6_command_scaled, 0, 1, min_thro, 1);
+    
+    s7_command_scaled = thro_des; //Main Motor
     s1_command_scaled = pitch_passthru + 0.5; //Elevator
     s2_command_scaled = yaw_passthru + 0.5; //Rudder
-    
+  }
+  
+  //-------------------Flight Mode 1 / Forward-Flight-Mode-------------------------
+  else if(channel_6_pwm < 1300){
+    s3_command_scaled = 0;
+    s4_command_scaled = 0;
+    s5_command_scaled = 0;
+    s6_command_scaled = 0;
+    s7_command_scaled = thro_des; //Main Motor
+    s1_command_scaled = pitch_passthru + 0.5; //Elevator
+    s2_command_scaled = yaw_passthru + 0.5; //Rudder
+  }
+  
   //not used Outputs ar Set to a difened Value of 0
   m1_command_scaled = 0;
   m2_command_scaled = 0;
@@ -1473,7 +1509,7 @@ void throttleCut() {
    * called before commandMotors() is called so that the last thing checked is if the user is giving permission to command
    * the motors to anything other than minimum value. Safety first. 
    */
-  if (channel_5_pwm > 1500) {
+  if (channel_5_pwm < 1500 || power_up_stop == HIGH) {
     //m1_command_PWM = 120;
     //m2_command_PWM = 120;
     //m3_command_PWM = 120;
@@ -1489,7 +1525,13 @@ void throttleCut() {
     s5_command_PWM = 0;
     s6_command_PWM = 0;
     s7_command_PWM = 0;
+
   }
+
+  if (channel_5_pwm < 1500){
+    power_up_stop = LOW;
+  }
+    
 }
 
 void calibrateMagnetometer() {
