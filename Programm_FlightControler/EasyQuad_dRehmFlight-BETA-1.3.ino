@@ -1,8 +1,7 @@
-//EasyQuad v1.1
-//Hovern funktionierte in der v1.0 mit dem EasyQuad. Es wurden zwei weitere Flugmodi hinzugefügt (Flugmodi noch nicht getestet)
-//ThrottleCut wurde korrigiert -> es sollte jetzt nicht mehr bei "Arm" auf dem Sender vor dem anstecken des EasyQuad-Akkus zum loslaufen der Motoren kommen (noch nicht getestet)
+//Testflug mit Prototypenaufbau funktioniert
+//  -Senkrecht Starten -> Transition -> waagrecht Flug (und zurück + Landung)
 
-//=======================================================================================================================//
+//========================================================================================================================//
 
 //Arduino/Teensy Flight Controller - dRehmFlight
 //Author: Nicholas Rehm
@@ -531,8 +530,8 @@ void controlMixer() {
     s6_command_scaled = map_float(s6_command_scaled, 0, 1, min_thro, 1);
     
     s7_command_scaled = thro_des; //Main Motor
-    s1_command_scaled = pitch_passthru + 0.5; //Elevator
-    s2_command_scaled = yaw_passthru + 0.5; //Rudder
+    s1_command_scaled = 0.5 - pitch_passthru; //Elevator
+    s2_command_scaled = 0.5 - yaw_passthru; //Rudder
   }
   
   //-------------------Flight Mode 1 / Forward-Flight-Mode-------------------------
@@ -542,8 +541,8 @@ void controlMixer() {
     s5_command_scaled = 0;
     s6_command_scaled = 0;
     s7_command_scaled = thro_des; //Main Motor
-    s1_command_scaled = pitch_passthru + 0.5; //Elevator
-    s2_command_scaled = yaw_passthru + 0.5; //Rudder
+    s1_command_scaled = 0.5 - pitch_passthru; //Elevator
+    s2_command_scaled = 0.5 - yaw_passthru; //Rudder
   }
   
   //not used Outputs ar Set to a difened Value of 0
