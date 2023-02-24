@@ -1,14 +1,18 @@
 //========================================================================================================================//
-//                                                 Programm-Versions v1.2                                                 //                                                                 
+//                                                 Programm-Versions-Infos                                                //                                                                 
 //========================================================================================================================//
 
-//Testflug mit dem ersten fertigen Modell funktioniert
-//  -Senkrecht Starten -> Transition -> waagrecht Flug (und zurück + Landung)
+//v1.3:
+//Ailerons hinzugefügt
+//Aileron, Elevon und Rudder mit PID
+//Testflug: ausstehend
 
-//Änderungen zu 1.1:
-//-herausnahme der MotorPins (OneShot-Protokoll)
-//-hinzufügen von Sevoausgängen S8 bis s13
-//-neubelegung der Ausgänge im Mixer und hinzufügen der Querruder
+//v1.2:
+//Testflug mit Prototypenaufbau funktioniert
+//  -Senkrecht Starten -> Transition -> waagrecht Flug (und zurück + Landung)
+//Herausnahme der MotorPins (OneShot-Protokoll)
+//Hinzufügen von Sevoausgängen S8 bis s13
+//Neubelegung der Ausgänge im Mixer und hinzufügen der Querruder
 
 //========================================================================================================================//
 //                                                      Grundprogramm                                                     //                                                                 
@@ -507,8 +511,8 @@ void controlMixer() {
     s10_command_scaled = 0; //Main Motor
     s1_command_scaled = 0.5; //Elevator
     s2_command_scaled = 0.5; //Rudder
-    s9_command_scaled = 0.5;//Aileron Rechts
-    s8_command_scaled = 0.4;//Aileron Links
+    s9_command_scaled = 0.45;//Aileron Rechts
+    s8_command_scaled = 0.5;//Aileron Links
   }
 
   //-------------------Flight Mode 2 / Transition-Mode-----------------------------
@@ -530,10 +534,10 @@ void controlMixer() {
     s6_command_scaled = map_float(s6_command_scaled, 0, 1, min_thro, 1);
     
     s10_command_scaled = thro_des; //Main Motor
-    s1_command_scaled = 0.5 - pitch_passthru; //Elevator
-    s2_command_scaled = 0.5 - yaw_passthru; //Rudder
-    s9_command_scaled = 0.5 - roll_passthru;//Aileron Rechts
-    s8_command_scaled = 0.4 + roll_passthru;//Aileron Links
+    s1_command_scaled = 0.5 - pitch_passthru - pitch_PID; //Elevator
+    s2_command_scaled = 0.5 - yaw_passthru - yaw_PID; //Rudder
+    s9_command_scaled = 0.45 - roll_passthru - roll_PID;//Aileron Rechts
+    s8_command_scaled = 0.55 - roll_passthru - roll_PID;//Aileron Links
   }
   
   //-------------------Flight Mode 1 / Forward-Flight-Mode-------------------------
@@ -543,10 +547,10 @@ void controlMixer() {
     s5_command_scaled = 0;
     s6_command_scaled = 0;
     s10_command_scaled = thro_des; //Main Motor
-    s1_command_scaled = 0.5 - pitch_passthru; //Elevator
-    s2_command_scaled = 0.5 - yaw_passthru; //Rudder
-    s9_command_scaled = 0.5 - roll_passthru;//Aileron Rechts
-    s8_command_scaled = 0.4 - roll_passthru;//Aileron Links
+    s1_command_scaled = 0.5 - pitch_passthru - pitch_PID; //Elevator
+    s2_command_scaled = 0.5 - yaw_passthru - yaw_PID; //Rudder
+    s9_command_scaled = 0.45 - roll_passthru - roll_PID;//Aileron Rechts
+    s8_command_scaled = 0.55 - roll_passthru - roll_PID;//Aileron Links
   }
   
   //not used Outputs ar Set to a difened Value of 0
